@@ -2,7 +2,7 @@
 
 A sleek, ultra-responsive, and minimalist Sudoku game built with **React**, **Vite**, and **Oxlint**. Engineered for speed and smooth gameplay, it includes custom board-generation logic, real-time feedback loops, and multi-modal controls.
 
-🎨 **[Live Demo URL Here]**
+🎨 **[https://jayed08.github.io/sudoku-react/]**
 
 ---
 
