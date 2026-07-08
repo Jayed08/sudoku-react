@@ -1,4 +1,4 @@
-# 🧩 Zen Sudoku Engine
+# 🧩 React Sudoku Engine
 
 A sleek, high-performance, and minimalist Sudoku web application built with **React**, **Vite**, and **Oxlint**. Engineered for developers, recruiters, and Sudoku enthusiasts, this project serves as a showcase of algorithmic complexity, clean component design, performance engineering, and state management in modern React.
 
@@ -7,7 +7,7 @@ A sleek, high-performance, and minimalist Sudoku web application built with **Re
 ---
 
 ## 🚀 The Elevator Pitch
-Most Sudoku web games use pre-generated puzzle databases or slow, third-party APIs. **Zen Sudoku Engine** implements a **custom, client-side puzzle generator and solver engine** from scratch. By combining recursive backtracking with low-overhead bitmask validations, it creates valid, uniquely solvable grids in milliseconds directly in the user's browser.
+Most Sudoku web games use pre-generated puzzle databases or slow, third-party APIs. This **React Sudoku Engine** implements a **custom, client-side puzzle generator and solver engine** from scratch. By combining recursive backtracking with low-overhead bitmask validations, it creates valid, uniquely solvable grids in milliseconds directly in the user's browser.
 
 ---
 
