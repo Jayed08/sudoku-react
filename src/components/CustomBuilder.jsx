@@ -244,7 +244,10 @@ export default function CustomBuilder({ onBack, onPlayCustom }) {
                     {status.techniques && status.techniques.length > 0 ? (
                       <ul className="bs-techniques-list" style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--slate-700)', listStyleType: 'disc', width: '100%', textAlign: 'left' }}>
                         {status.techniques.map((t, idx) => (
-                          <li key={idx} style={{ marginTop: '4px' }}>{t}</li>
+                          <li key={idx} style={{ marginTop: '4px' }}>
+                            {t.name}
+                            {t.count !== null && ` ×${t.count}`}
+                          </li>
                         ))}
                       </ul>
                     ) : (

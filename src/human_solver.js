@@ -8,12 +8,12 @@ export class HumanSolverEngine {
         );
         // Track the highest technique needed to solve the puzzle
         this.highestTechniqueUsed = 'Beginner';
-        this.techniquesUsed = new Set();
+        this.techniquesUsed = {};
     }
 
     /**
      * Evaluates the puzzle and returns its human difficulty rating
-     * @return {Object} { puzzle: [flat array], level: string, solved: boolean, techniques: string[] }
+     * @return {Object} { puzzle: [flat array], level: string, solved: boolean, techniques: {name: string, count: number|null}[] }
      */
     gradePuzzle() {
         this.initializeCandidates();
@@ -44,7 +44,7 @@ export class HumanSolverEngine {
 
             // Tier 3: Medium
             if (this.findPointingPairs()) {
-                this.updateGrade('Medium', 'Pointing Pairs');
+                this.updateGrade('Medium', 'Pointing Pair');
                 logicStepFound = true;
                 continue;
             }
@@ -56,38 +56,38 @@ export class HumanSolverEngine {
             }
 
             if (this.findNakedPairs()) {
-                this.updateGrade('Hard', 'Naked Pairs');
+                this.updateGrade('Hard', 'Naked Pair');
                 logicStepFound = true;
                 continue;
             }
 
             if (this.findClaimingPairs()) {
-                this.updateGrade('Hard', 'Claiming Pairs');
+                this.updateGrade('Hard', 'Claiming Pair');
                 logicStepFound = true;
                 continue;
             }
 
             if (this.findHiddenPairs()) {
-                this.updateGrade('Hard', 'Hidden Pairs');
+                this.updateGrade('Hard', 'Hidden Pair');
                 logicStepFound = true;
                 continue;
             }
 
             // Tier 5: Expert
             if (this.findUniqueRectangleType1()) {
-                this.updateGrade('Expert', 'Unique Rectangle Type 1');
+                this.updateGrade('Expert', 'Unique Rectangle');
                 logicStepFound = true;
                 continue;
             }
 
             if (this.findUniqueRectangleType2()) {
-                this.updateGrade('Expert', 'Unique Rectangle Type 2');
+                this.updateGrade('Expert', 'Unique Rectangle');
                 logicStepFound = true;
                 continue;
             }
 
             if (this.findUniqueRectangleType4()) {
-                this.updateGrade('Expert', 'Unique Rectangle Type 4');
+                this.updateGrade('Expert', 'Unique Rectangle');
                 logicStepFound = true;
                 continue;
             }
@@ -102,9 +102,12 @@ export class HumanSolverEngine {
             // Puzzle is classified as Extreme.
         }
 
-        const techniques = Array.from(this.techniquesUsed);
+        const techniques = Object.entries(this.techniquesUsed).map(([name, count]) => ({
+            name,
+            count
+        }));
         if (!this.isSolved()) {
-            techniques.push("other advanced techniques");
+            techniques.push({ name: "Beyond X-Wing", count: null });
         }
 
         return {
@@ -120,7 +123,7 @@ export class HumanSolverEngine {
             this.highestTechniqueUsed = level;
         }
         if (techniqueName) {
-            this.techniquesUsed.add(techniqueName);
+            this.techniquesUsed[techniqueName] = (this.techniquesUsed[techniqueName] || 0) + 1;
         }
     }
 
