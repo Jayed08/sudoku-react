@@ -110,20 +110,6 @@ export default function CustomBuilder({ onBack, onPlayCustom }) {
     }
   });
 
-  const handleAnalyze = () => run(() => {
-    const res = validateGridState(grid);
-    if (!res.valid) {
-      setStatus({ kind: 'err', text: `Cannot analyze: ${res.error}` });
-    } else {
-      const grade = gradeFlat(grid);
-      setStatus({
-        kind: 'analysis',
-        level: grade.level,
-        techniques: grade.techniques
-      });
-    }
-  });
-
   const handlePlay = () => run(() => {
     const res = validateGridState(grid);
     if (!res.valid) {
@@ -137,15 +123,6 @@ export default function CustomBuilder({ onBack, onPlayCustom }) {
       });
     }
   });
-
-  const LEVEL_COLOR = {
-    Beginner: '#22c55e',
-    Easy: '#84cc16',
-    Medium: '#f59e0b',
-    Hard: '#ea580c',
-    Expert: '#dc2626',
-    Extreme: '#7c3aed'
-  };
 
   return (
     <div className="app-shell">
@@ -213,13 +190,12 @@ export default function CustomBuilder({ onBack, onPlayCustom }) {
           <div className="builder-actions">
             <button className="secondary-button" type="button" onClick={handleValidate} disabled={busy}>Validate</button>
             <button className="secondary-button" type="button" onClick={handleSolve} disabled={busy}>Solve</button>
-            <button className="secondary-button" type="button" onClick={handleAnalyze} disabled={busy}>Analyze</button>
             <button
               className="primary-button"
               type="button"
               onClick={handlePlay}
               disabled={busy}
-              style={{ gridColumn: 'span 3' }}
+              style={{ gridColumn: 'span 2' }}
             >
               Play Puzzle
             </button>
@@ -233,31 +209,7 @@ export default function CustomBuilder({ onBack, onPlayCustom }) {
 
           {status && !busy && (
             <div className={`builder-status builder-status--${status.kind}`}>
-              {status.kind === 'analysis' ? (
-                <>
-                  <div className="bs-row">
-                    <span className="bs-label">Difficulty</span>
-                    <span className="bs-value" style={{ color: LEVEL_COLOR[status.level] }}>{status.level}</span>
-                  </div>
-                  <div className="bs-row" style={{ flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
-                    <span className="bs-label" style={{ marginBottom: '6px' }}>Techniques Used</span>
-                    {status.techniques && status.techniques.length > 0 ? (
-                      <ul className="bs-techniques-list" style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--slate-700)', listStyleType: 'disc', width: '100%', textAlign: 'left' }}>
-                        {status.techniques.map((t, idx) => (
-                          <li key={idx} style={{ marginTop: '4px' }}>
-                            {t.name}
-                            {t.count !== null && ` ×${t.count}`}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="bs-value" style={{ textAlign: 'left', fontSize: '13px', width: '100%' }}>None</span>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="bs-text">{status.text}</p>
-              )}
+              <p className="bs-text">{status.text}</p>
             </div>
           )}
         </aside>

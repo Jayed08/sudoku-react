@@ -8,12 +8,12 @@ export class HumanSolverEngine {
         );
         // Track the highest technique needed to solve the puzzle
         this.highestTechniqueUsed = 'Beginner';
-        this.techniquesUsed = {};
+        this.techniquesUsed = new Set();
     }
 
     /**
      * Evaluates the puzzle and returns its human difficulty rating
-     * @return {Object} { puzzle: [flat array], level: string, solved: boolean, techniques: {name: string, count: number|null}[] }
+     * @return {Object} { puzzle: [flat array], level: string, solved: boolean, techniques: string[] }
      */
     gradePuzzle() {
         this.initializeCandidates();
@@ -102,12 +102,9 @@ export class HumanSolverEngine {
             // Puzzle is classified as Extreme.
         }
 
-        const techniques = Object.entries(this.techniquesUsed).map(([name, count]) => ({
-            name,
-            count
-        }));
+        const techniques = Array.from(this.techniquesUsed);
         if (!this.isSolved()) {
-            techniques.push({ name: "Beyond X-Wing", count: null });
+            techniques.push("Beyond X-Wing");
         }
 
         return {
@@ -123,7 +120,7 @@ export class HumanSolverEngine {
             this.highestTechniqueUsed = level;
         }
         if (techniqueName) {
-            this.techniquesUsed[techniqueName] = (this.techniquesUsed[techniqueName] || 0) + 1;
+            this.techniquesUsed.add(techniqueName);
         }
     }
 
@@ -207,6 +204,18 @@ export class HumanSolverEngine {
             }
             if (zeros === 1) { this.setCell(idx, c, 45 - sum); return true; }
         }
+        // Check blocks
+        for (let b = 0; b < 9; b++) {
+            let br = Math.floor(b / 3) * 3, bc = (b % 3) * 3;
+            let zeros = 0, rIdx = -1, cIdx = -1, sum = 0;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (this.board[br + i][bc + j] === 0) { zeros++; rIdx = br + i; cIdx = bc + j; }
+                    else sum += this.board[br + i][bc + j];
+                }
+            }
+            if (zeros === 1) { this.setCell(rIdx, cIdx, 45 - sum); return true; }
+        }
         return false;
     }
 
@@ -262,13 +271,33 @@ export class HumanSolverEngine {
 
     // Tier 2: Hidden Single
     findHiddenSingleWithMarks() {
-        for (let r = 0; r < 9; r++) {
-            for (let num = 1; num <= 9; num++) {
+        for (let num = 1; num <= 9; num++) {
+            // Rows
+            for (let r = 0; r < 9; r++) {
                 let count = 0, targetCol = -1;
                 for (let c = 0; c < 9; c++) {
                     if (this.board[r][c] === 0 && this.candidates[r][c][num]) { count++; targetCol = c; }
                 }
                 if (count === 1) { this.setCell(r, targetCol, num); return true; }
+            }
+            // Cols
+            for (let c = 0; c < 9; c++) {
+                let count = 0, targetRow = -1;
+                for (let r = 0; r < 9; r++) {
+                    if (this.board[r][c] === 0 && this.candidates[r][c][num]) { count++; targetRow = r; }
+                }
+                if (count === 1) { this.setCell(targetRow, c, num); return true; }
+            }
+            // Blocks
+            for (let b = 0; b < 9; b++) {
+                let br = Math.floor(b / 3) * 3, bc = (b % 3) * 3;
+                let count = 0, targetRow = -1, targetCol = -1;
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (this.board[br + i][bc + j] === 0 && this.candidates[br + i][bc + j][num]) { count++; targetRow = br + i; targetCol = bc + j; }
+                    }
+                }
+                if (count === 1) { this.setCell(targetRow, targetCol, num); return true; }
             }
         }
         return false;
@@ -316,8 +345,9 @@ export class HumanSolverEngine {
 
     // Tier 3: Claiming Pairs (Row/Col filters box)
     findClaimingPairs() {
-        for (let r = 0; r < 9; r++) {
-            for (let num = 1; num <= 9; num++) {
+        for (let num = 1; num <= 9; num++) {
+            // Rows
+            for (let r = 0; r < 9; r++) {
                 let boxes = new Set();
                 for (let c = 0; c < 9; c++) {
                     if (this.board[r][c] === 0 && this.candidates[r][c][num]) {
@@ -326,12 +356,33 @@ export class HumanSolverEngine {
                 }
                 if (boxes.size === 1) {
                     let targetBox = [...boxes][0];
-                    let br = Math.floor(targetBox / 3) * 3;
-                    let bc = (targetBox % 3) * 3;
+                    let br = Math.floor(targetBox / 3) * 3, bc = (targetBox % 3) * 3;
                     let updated = false;
                     for (let i = 0; i < 3; i++) {
                         for (let j = 0; j < 3; j++) {
                             if (br + i !== r && this.candidates[br + i][bc + j][num]) {
+                                this.candidates[br + i][bc + j][num] = false; updated = true;
+                            }
+                        }
+                    }
+                    if (updated) return true;
+                }
+            }
+            // Cols
+            for (let c = 0; c < 9; c++) {
+                let boxes = new Set();
+                for (let r = 0; r < 9; r++) {
+                    if (this.board[r][c] === 0 && this.candidates[r][c][num]) {
+                        boxes.add(Math.floor(r / 3) * 3 + Math.floor(c / 3));
+                    }
+                }
+                if (boxes.size === 1) {
+                    let targetBox = [...boxes][0];
+                    let br = Math.floor(targetBox / 3) * 3, bc = (targetBox % 3) * 3;
+                    let updated = false;
+                    for (let i = 0; i < 3; i++) {
+                        for (let j = 0; j < 3; j++) {
+                            if (bc + j !== c && this.candidates[br + i][bc + j][num]) {
                                 this.candidates[br + i][bc + j][num] = false; updated = true;
                             }
                         }
@@ -345,22 +396,28 @@ export class HumanSolverEngine {
 
     // Tier 4: Naked Pairs
     findNakedPairs() {
-        for (let r = 0; r < 9; r++) {
-            for (let c1 = 0; c1 < 9; c1++) {
-                if (this.board[r][c1] !== 0) continue;
-                let p1 = this.getCellCandidates(r, c1);
-                if (p1.length !== 2) continue;
-                for (let c2 = c1 + 1; c2 < 9; c2++) {
-                    let p2 = this.getCellCandidates(r, c2);
-                    if (p2.length === 2 && p1[0] === p2[0] && p1[1] === p2[1]) {
-                        let updated = false;
-                        for (let c = 0; c < 9; c++) {
-                            if (c !== c1 && c !== c2 && this.board[r][c] === 0) {
-                                if (this.candidates[r][c][p1[0]]) { this.candidates[r][c][p1[0]] = false; updated = true; }
-                                if (this.candidates[r][c][p1[1]]) { this.candidates[r][c][p1[1]] = false; updated = true; }
+        let houseTypes = ['row', 'col', 'block'];
+        for (let type of houseTypes) {
+            for (let i = 0; i < 9; i++) {
+                let cells = this.getHouseCells(type, i);
+                let emptyCells = cells.filter(cell => this.board[cell.r][cell.c] === 0);
+                for (let j = 0; j < emptyCells.length; j++) {
+                    let c1 = emptyCells[j];
+                    let p1 = this.getCellCandidates(c1.r, c1.c);
+                    if (p1.length !== 2) continue;
+                    for (let k = j + 1; k < emptyCells.length; k++) {
+                        let c2 = emptyCells[k];
+                        let p2 = this.getCellCandidates(c2.r, c2.c);
+                        if (p2.length === 2 && p1[0] === p2[0] && p1[1] === p2[1]) {
+                            let updated = false;
+                            for (let cell of emptyCells) {
+                                if (cell !== c1 && cell !== c2) {
+                                    if (this.candidates[cell.r][cell.c][p1[0]]) { this.candidates[cell.r][cell.c][p1[0]] = false; updated = true; }
+                                    if (this.candidates[cell.r][cell.c][p1[1]]) { this.candidates[cell.r][cell.c][p1[1]] = false; updated = true; }
+                                }
                             }
+                            if (updated) return true;
                         }
-                        if (updated) return true;
                     }
                 }
             }
@@ -370,25 +427,27 @@ export class HumanSolverEngine {
 
     // Tier 4: Hidden Pairs
     findHiddenPairs() {
-        for (let r = 0; r < 9; r++) {
-            for (let n1 = 1; n1 <= 9; n1++) {
-                let spots1 = [];
-                for (let c = 0; c < 9; c++) if (this.board[r][c] === 0 && this.candidates[r][c][n1]) spots1.push(c);
-                if (spots1.length !== 2) continue;
-                for (let n2 = n1 + 1; n2 <= 9; n2++) {
-                    let spots2 = [];
-                    for (let c = 0; c < 9; c++) if (this.board[r][c] === 0 && this.candidates[r][c][n2]) spots2.push(c);
-                    if (spots2.length === 2 && spots1[0] === spots2[0] && spots1[1] === spots2[1]) {
-                        let updated = false;
-                        let targetCols = spots1;
-                        for (let col of targetCols) {
-                            for (let num = 1; num <= 9; num++) {
-                                if (num !== n1 && num !== n2 && this.candidates[r][col][num]) {
-                                    this.candidates[r][col][num] = false; updated = true;
+        let houseTypes = ['row', 'col', 'block'];
+        for (let type of houseTypes) {
+            for (let i = 0; i < 9; i++) {
+                let cells = this.getHouseCells(type, i);
+                for (let n1 = 1; n1 <= 9; n1++) {
+                    let spots1 = cells.filter(cell => this.board[cell.r][cell.c] === 0 && this.candidates[cell.r][cell.c][n1]);
+                    if (spots1.length !== 2) continue;
+                    for (let n2 = n1 + 1; n2 <= 9; n2++) {
+                        let spots2 = cells.filter(cell => this.board[cell.r][cell.c] === 0 && this.candidates[cell.r][cell.c][n2]);
+                        if (spots2.length === 2 && spots1[0].r === spots2[0].r && spots1[0].c === spots2[0].c && spots1[1].r === spots2[1].r && spots1[1].c === spots2[1].c) {
+                            let updated = false;
+                            for (let cell of spots1) {
+                                for (let num = 1; num <= 9; num++) {
+                                    if (num !== n1 && num !== n2 && this.candidates[cell.r][cell.c][num]) {
+                                        this.candidates[cell.r][cell.c][num] = false;
+                                        updated = true;
+                                    }
                                 }
                             }
+                            if (updated) return true;
                         }
-                        if (updated) return true;
                     }
                 }
             }
@@ -399,6 +458,7 @@ export class HumanSolverEngine {
     // Tier 5: X-Wing
     findXWing() {
         for (let num = 1; num <= 9; num++) {
+            // Row X-Wing
             let rowPairs = [];
             for (let r = 0; r < 9; r++) {
                 let cols = [];
@@ -414,6 +474,30 @@ export class HumanSolverEngine {
                         for (let c of targetCols) {
                             for (let r = 0; r < 9; r++) {
                                 if (!excludedRows.includes(r) && this.board[r][c] === 0 && this.candidates[r][c][num]) {
+                                    this.candidates[r][c][num] = false; updated = true;
+                                }
+                            }
+                        }
+                        if (updated) return true;
+                    }
+                }
+            }
+            // Col X-Wing
+            let colPairs = [];
+            for (let c = 0; c < 9; c++) {
+                let rows = [];
+                for (let r = 0; r < 9; r++) if (this.board[r][c] === 0 && this.candidates[r][c][num]) rows.push(r);
+                if (rows.length === 2) colPairs.push({ c, r1: rows[0], r2: rows[1] });
+            }
+            for (let i = 0; i < colPairs.length; i++) {
+                for (let j = i + 1; j < colPairs.length; j++) {
+                    if (colPairs[i].r1 === colPairs[j].r1 && colPairs[i].r2 === colPairs[j].r2) {
+                        let updated = false;
+                        let targetRows = [colPairs[i].r1, colPairs[i].r2];
+                        let excludedCols = [colPairs[i].c, colPairs[j].c];
+                        for (let r of targetRows) {
+                            for (let c = 0; c < 9; c++) {
+                                if (!excludedCols.includes(c) && this.board[r][c] === 0 && this.candidates[r][c][num]) {
                                     this.candidates[r][c][num] = false; updated = true;
                                 }
                             }
@@ -630,6 +714,23 @@ export class HumanSolverEngine {
             }
         }
         return false;
+    }
+
+    getHouseCells(type, idx) {
+        let cells = [];
+        if (type === 'row') {
+            for (let c = 0; c < 9; c++) cells.push({r: idx, c});
+        } else if (type === 'col') {
+            for (let r = 0; r < 9; r++) cells.push({r, c: idx});
+        } else if (type === 'block') {
+            let br = Math.floor(idx / 3) * 3, bc = (idx % 3) * 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    cells.push({r: br + i, c: bc + j});
+                }
+            }
+        }
+        return cells;
     }
 
     getCellCandidates(r, c) {
